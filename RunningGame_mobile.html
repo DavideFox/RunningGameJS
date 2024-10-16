@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Running Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+	<button id="reloadButton" style="display:none;" title="Restart">Restart</button>
+    <canvas id="gameCanvas"></canvas>
+	
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const groundHeight = 100;
+        const player = {
+            x: canvas.width / 4,
+            y: canvas.height - groundHeight - 50,
+            size: 50,
+            color: 'aqua',
+            dy: 0,
+            gravity: 1,
+            jumpPower: -20,
+            grounded: false,
+            jump() {
+                if (this.grounded) {
+                    this.dy = this.jumpPower;
+                    this.grounded = false;
+                }
+            },
+            update() {
+                this.dy += this.gravity;
+                this.y += this.dy;
+                if (this.y + this.size > canvas.height - groundHeight) {
+                    this.y = canvas.height - groundHeight - this.size;
+                    this.dy = 0;
+                    this.grounded = true;
+                }
+            },
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            }
+        };
+		
+		//Game properties
+        const obstacles = [];
+        const obstacleSize = 50;
+        const obstacleSpeed = 1;
+		let minSpawnInterval = 600;
+		let maxSpawnInterval = 1800;
+		
+        let spawnInterval = 1500;
+        let lastSpawnTime = 0;
+		let lastDifficultyIncrease = 0;
+        let gameOver = false;
+		let gameOverTime = null; // Variabile per memorizzare il momento del game over
+
+
+        function spawnObstacle() {
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - groundHeight - obstacleSize,
+                size: obstacleSize,
+                color: 'red'
+            });
+        }
+
+        function updateObstacles() {
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].x -= obstacleSpeed;
+                if (obstacles[i].x + obstacleSize < 0) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawObstacles() {
+            for (const obstacle of obstacles) {
+                ctx.fillStyle = obstacle.color;
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.size, obstacle.size);
+            }
+        }
+
+        function drawGround() {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
+        }
+
+        function checkCollision() {
+            for (const obstacle of obstacles) {
+                if (
+                    player.x < obstacle.x + obstacle.size &&
+                    player.x + player.size > obstacle.x &&
+                    player.y < obstacle.y + obstacle.size &&
+                    player.y + player.size > obstacle.y
+                ) {
+                    gameOver = true;
+                    return;
+                }
+            }
+        }
+		
+		//////////////////////////// GAME LOOP ///////////////////////////
+        function gameLoop(timestamp) {
+            if (gameOver) {
+                ctx.fillStyle = 'gold';
+                ctx.font = '48px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width / 2, 100);
+				ctx.font = '36px sans-serif';
+                ctx.fillText(Math.floor(timestamp)+ ' s', canvas.width / 2, 150);
+				
+				
+				setTimeout(function() {
+					// DISEGNO LA FRECCIA DI RELOAD 
+				    const centerX = canvas.width / 2;
+					const centerY = 250;
+					const radius = 30; // Dimensione dell'icona
+
+					// Disegna il cerchio esterno (icona di reload stilizzata) con apertura verso l'alto
+					ctx.beginPath();
+					ctx.arc(centerX, centerY, radius, -0.25 * Math.PI, 1.25 * Math.PI); // Arco con apertura verso l'alto
+					ctx.strokeStyle = 'gold'; // Colore oro
+					ctx.lineWidth = 5; // Spessore della linea
+					ctx.stroke();
+					// Disegna la parte destra della freccia
+					ctx.beginPath();
+					ctx.moveTo(centerX + radius * Math.cos(-0.25 * Math.PI), centerY + radius * Math.sin(-0.25 * Math.PI)); // Punto iniziale della freccia
+					ctx.lineTo(centerX + (radius + 10) * Math.cos(-0.15 * Math.PI), centerY + (radius + 10) * Math.sin(-0.15 * Math.PI)); // Parte della freccia
+					ctx.strokeStyle = 'gold'; // Colore oro
+					ctx.lineWidth = 5; // Spessore della linea
+					ctx.stroke();
+					// Disegna la parte sinistra della freccia
+					ctx.beginPath();
+					ctx.moveTo(centerX + radius * Math.cos(-0.25 * Math.PI), centerY + radius * Math.sin(-0.25 * Math.PI)); // Punto iniziale della freccia
+					ctx.lineTo(centerX + (radius - 10) * Math.cos(-0.15 * Math.PI), centerY + (radius - 10) * Math.sin(-0.15 * Math.PI)); // Parte della freccia
+					ctx.strokeStyle = 'gold'; // Colore oro
+					ctx.lineWidth = 5; // Spessore della linea
+					ctx.stroke();
+				}, 2000); // Timeout n millisecondi
+				
+				gameOverTime = Date.now()
+                return;
+            } 
+
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            player.update();
+            player.draw();
+
+			
+            if (timestamp - lastSpawnTime > spawnInterval) {
+                spawnObstacle();
+                lastSpawnTime = timestamp;
+				//update spawn interval randomly in a interval
+				spawnInterval = Math.floor(Math.random() * (maxSpawnInterval - minSpawnInterval)) + minSpawnInterval;
+				console.log(spawnInterval)
+				if (timestamp - lastDifficultyIncrease> 15000) {
+					//difficulty increases over time
+					lastDifficultyIncrease = timestamp
+					minSpawnInterval = minSpawnInterval - 100
+					console.log("Difficulty increses")
+				}
+            }
+
+            updateObstacles();
+            drawObstacles();
+            drawGround();
+            checkCollision();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        canvas.addEventListener('click', () => {
+            if (!gameOver) {
+                player.jump();
+			} else if (gameOver && gameOverTime && (Date.now() - gameOverTime >= 2500)) {
+				location.reload();
+			}
+        });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

@@ -33,7 +33,7 @@
             size: 50,
             color: 'aqua',
             dy: 0,
-            gravity: 0.1,
+            gravity: 1,
             jumpPower: -6,
             grounded: false,
             jump() {
@@ -61,10 +61,10 @@
         const obstacles = [];
         const obstacleSize = 50;
         const obstacleSpeed = 3;
-		let minSpawnInterval = 10000;
-		let maxSpawnInterval = 22000;
+		let minSpawnInterval = 7000;
+		let maxSpawnInterval = 18000;
 		
-        let spawnInterval = 19000;
+        let spawnInterval = 15000;
         let lastSpawnTime = 0;
 		let lastDifficultyIncrease = 0;
         let gameOver = false;
